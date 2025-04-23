@@ -1,0 +1,990 @@
+﻿<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Meccanico</title>
+
+<!-- Aggiungi dopo i meta tags esistenti -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2c3e50">
+
+<!-- Icone per diverse dimensioni -->
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<!-- Registra il Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(registration => {
+          console.log('ServiceWorker registrato con successo:', registration.scope);
+        })
+        .catch(error => {
+          console.log('Registrazione ServiceWorker fallita:', error);
+        });
+    });
+  }
+</script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+    background-color: #e9ecef;
+    background-image: linear-gradient(to bottom, #c8d6e5, #dfe6e9);
+    color: #333;
+    padding: 10px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 12px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+        
+        .credits {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-top: 8px;
+        }
+
+        .address {
+            font-size: 0.9rem;
+            color: #2c3e50;
+            margin-top: 4px;
+            font-weight: bold;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 15px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 12px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .info-display {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 8px;
+        }
+
+        .info-box {
+            background-color: #fff;
+            padding: 8px 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+            min-width: 90px;
+        }
+
+        .info-label {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin-bottom: 3px;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        select, button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+
+        select {
+            background-color: white;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .card {
+            aspect-ratio: 3/4;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .card-inner {
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.5s;
+            position: relative;
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .card-front {
+            background-color: #34495e;
+            background-image: url('https://www.erisformazione.com/wp-content/uploads/2023/05/logo2.png');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 80%;
+        }
+
+        .card-back {
+            background-color: white;
+            transform: rotateY(180deg);
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .card-img {
+    height: 80%;  /* Aumentato da 70% a 90% */
+    width: 100%;
+    object-fit: contain;
+    padding: 4px;
+    margin-bottom: 6px;
+    transform: scale(1.1);  /* Aumenta la dimensione del 10% */
+    transform-origin: center;  /* Mantiene l'immagine centrata */
+}
+
+.card-back {
+    background-color: white;
+    transform: rotateY(180deg);
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    text-align: center;
+    justify-content: center;
+}
+
+        .card-title {
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: #2c3e50;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .modal-title {
+            font-size: 1.6rem;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .modal-text {
+            margin-bottom: 15px;
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+        
+        .victory-image {
+            max-width: 50%;
+            height: auto;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+        
+        .motivational-text {
+            font-style: italic;
+            color: #e74c3c;
+            margin: 12px 0;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .component-info {
+            display: none;
+            background-color: white;
+            padding: 12px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-top: 15px;
+            width: 100%;
+            animation: fadeIn 0.5s;
+        }
+
+        .component-name {
+            font-size: 1.2rem;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .component-desc {
+            font-size: 0.95rem;
+            line-height: 1.4;
+            color: #555;
+        }
+
+        /* Nuovi stili per la schermata iniziale */
+        #welcome-screen {
+            display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.8);
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+    overflow: auto; /* Cambiato da 'overflow-y: auto' a 'overflow: auto' */
+    padding: 15px;
+    box-sizing: border-box; /* Aggiunto per includere il padding nell'altezza */
+}
+
+        .welcome-content {
+             background-color: white;
+    padding: 20px;
+    border-radius: 15px;
+    max-width: 700px;
+    width: 95%;
+    max-height: 95vh; /* Limita l'altezza al 95% della viewport */
+    text-align: center;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    margin: 15px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto; /* Aggiunto scroll interno se necessario */
+    box-sizing: border-box; /* Aggiunto */
+}
+
+.welcome-content > * {
+    flex-shrink: 0; /* Impedisce il restringimento degli elementi interni */
+}
+
+        .logo {
+            max-width: 180px;
+            margin-bottom: 15px;
+        }
+
+        .welcome-title {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+
+        .credits-container {
+            margin: 15px 0;
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .docente {
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 5px;
+            color: #e74c3c;
+        }
+
+        .studenti {
+            font-size: 0.95rem;
+            margin-bottom: 5px;
+        }
+
+        .tutor {
+            font-size: 0.95rem;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .corso-info {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .rules {
+            text-align: left;
+    margin: 10px 0; /* Ridotto da 15px */
+    padding: 10px; /* Ridotto da 12px */
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    font-size: 0.85rem; /* Riduci leggermente la dimensione del font */
+}
+
+        .rules h3 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .rules ul {
+            padding-left: 18px; /* Ridotto da 20px */
+    margin-bottom: 6px; /* Ridotto da 8px */
+}
+
+        .rules li {
+            margin-bottom: 4px; /* Ridotto da 5px */
+}
+
+        .start-button {
+           padding: 10px 25px; /* Ridotto da 12px 30px */
+    font-size: 1.1rem; /* Ridotto da 1.2rem */
+    margin-top: 15px; /* Ridotto da 20px */
+    margin-bottom: 15px; /* Ridotto da 20px */
+    width: 80%;
+    max-width: 300px;
+}
+
+        .start-button:hover {
+            background-color: #c0392b;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Responsive Grid */
+        @media (max-width: 700px) {
+            body {
+                padding: 8px;
+            }
+            
+            h1 {
+                font-size: 1.6rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .game-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .card-title {
+                font-size: 0.7rem;
+            }
+            
+            .welcome-title {
+                font-size: 1.5rem;
+            }
+            
+            .modal-title {
+                font-size: 1.4rem;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .info-display {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .game-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 6px;
+            }
+            
+            .game-grid.medium {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .game-grid.difficult {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            select, button {
+                width: 100%;
+                margin-top: 5px;
+                padding: 10px;
+            }
+            
+            .docente, .studenti, .tutor {
+                font-size: 0.9rem;
+            }
+        }
+.component-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 150;
+}
+
+.component-modal {
+    background-color: white;
+    width: 90%;
+    max-width: 600px;
+    border-radius: 15px;
+    padding: 20px;
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.component-image {
+    flex: 0 0 40%;
+}
+
+.component-image img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+.component-text {
+    flex: 1;
+}
+
+.component-text h3 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+    font-size: 1.4rem;
+}
+
+.component-text p {
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #555;
+}
+
+@media (max-width: 600px) {
+    .component-modal {
+        flex-direction: column;
+    }
+    
+    .component-image {
+        flex: 0 0 auto;
+    }
+}
+    </style>
+
+
+
+</head>
+<body>
+    <!-- Schermata di benvenuto -->
+    <div id="welcome-screen">
+        <div class="welcome-content">
+            <img src="https://www.erisformazione.com/wp-content/uploads/2022/09/logo.png" alt="ERIS Formazione" class="logo">
+            
+            <div class="credits-container">
+                <p class="docente">DOCENTE: Prof. Ing. Azzarelli Giampiero</p>
+                <p class="studenti">STUDENTI: Caserta Francesco e Sortino Salvatore</p>
+                <p class="tutor">REFERENTE DI SEDE: Dott.ssa Causapruno Anita</p>
+                <p class="tutor">TUTOR: Dott.ssa Alescio Virginia</p>
+                <p class="address">ERIS Formazione RAGUSA - Via Pier Delle Vigne 14 - Tel. 0932/715613</p>
+            </div>
+            
+            <h1 class="welcome-title">Memory Meccanico</h1>
+            <p class="subtitle">Trova le coppie di componenti meccanici e parti di motore</p>
+            
+            <div class="corso-info">
+                <p>Gioco creato come esercitazione del Modulo M12-Informatica dagli studenti di MECCANICA del Corso</p>
+                <p><strong>OPERATORE ALLA RIPARAZIONE DEI VEICOLI A MOTORE- MANUTENZIONE E RIPARAZIONE DELLE PARTI E DEI SISTEMI MECCANICI ED ELETTROMECCANICI</strong></p>
+                <p>III Annualità sez. AM di ore 1056- ID 140</p>
+            </div>
+            
+            <div class="rules">
+                <h3>Regole del Gioco:</h3>
+                <ul>
+                    <li>Trova tutte le coppie di carte corrispondenti.</li>
+                    <li>Clicca su una carta per girarla.</li>
+                    <li>Puoi girare solo due carte alla volta.</li>
+                    <li>Se le carte corrispondono, rimangono scoperte.</li>
+                    <li>Se le carte non corrispondono, si rigireranno.</li>
+                    <li>Il gioco termina quando tutte le coppie sono state trovate.</li>
+                    <li>Completa il gioco nel minor tempo possibile e con meno mosse!</li>
+                </ul>
+            </div>
+            
+            <button class="start-button" id="start-game">Inizia il Gioco</button>
+        </div>
+    </div>
+
+    <header>
+        <h1>Memory Meccanico</h1>
+        <p class="subtitle">Trova le coppie di componenti meccanici e parti di motore</p>
+        <p class="credits">DOCENTE: Prof. Ing. Azzarelli Giampiero - STUDENTI: Caserta Francesco e Sortino Salvatore</p>
+        <p class="address">ERIS Formazione RAGUSA - Via Pier Delle Vigne 14 - Tel. 0932/715613</p>
+    </header>
+
+    <div class="controls">
+        <div class="info-display">
+            <div class="info-box">
+                <div class="info-label">Tempo</div>
+                <div class="info-value" id="timer">00:00</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Mosse</div>
+                <div class="info-value" id="moves">0</div>
+            </div>
+        </div>
+        
+        <div>
+            <select id="difficulty">
+                <option value="easy">Facile (4x2)</option>
+                <option value="medium">Medio (4x3)</option>
+                <option value="hard">Difficile (4x4)</option>
+            </select>
+            <button id="restart">Nuova Partita</button>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="game-grid" id="game-grid"></div>
+        
+        <div class="component-info" id="component-info">
+            <h3 class="component-name" id="component-name"></h3>
+            <p class="component-desc" id="component-desc"></p>
+        </div>
+    </div>
+
+    <div class="modal" id="victory-modal">
+        <div class="modal-content">
+            <h2 class="modal-title">Congratulazioni!</h2>
+            <img src="https://i.postimg.cc/Wpx7WYTG/Chat-GPT-Image-16-apr-2025-11-29-41.png" alt="Diploma" class="victory-image">
+            <p class="modal-text">Complimenti hai ottenuto la QUALIFICA come OPERATORE ALLA RIPARAZIONE DEI VEICOLI A MOTORE MANUTENZIONE E RIPARAZIONE DELLE PARTI E DEI SISTEMI MECCANICI ED ELETTROMECCANICI di ERIS Formazione Ragusa</p>
+            <p class="motivational-text">Adesso puoi aggiustare qualsiasi motore... o almeno sai riconoscerne i pezzi quando cadono!!!!!!!! :)</p>
+            <p class="modal-text" id="victory-message"></p>
+            <button id="play-again">Gioca Ancora</button>
+        </div>
+    </div>
+
+    <script>
+        // Definizione dei componenti meccanici con descrizioni
+        const components = [
+            {
+                name: "Pistone",
+                description: "Elemento mobile del motore a combustione interna che trasforma l'energia dell'esplosione del carburante in movimento meccanico lineare.",
+                image: 'https://i.postimg.cc/FRFS4YnF/Chat-GPT-Image-12-apr-2025-12-20-09.png'
+            },
+            {
+                name: "Albero motore",
+                description: "Componente chiave che converte il movimento alternativo dei pistoni in movimento rotativo, trasmettendo la potenza alla trasmissione.",
+                image: 'https://i.postimg.cc/7Zh0qgHH/Chat-GPT-Image-16-apr-2025-11-47-29.png'
+            },
+            {
+                name: "Candela",
+                description: "Genera la scintilla elettrica necessaria per innescare la combustione della miscela aria-carburante nei motori a benzina.",
+                image: 'https://i.postimg.cc/Ghg0BmCL/candela.png'
+            },
+            {
+                name: "Carburatore",
+                description: "Dispositivo che miscela l'aria con nebulizzazione di carburante nella giusta proporzione per il funzionamento ottimale del motore.",
+                image: 'https://i.postimg.cc/wj1CDYqh/carburatore.png'
+            },
+            {
+                name: "Frizione",
+                description: "Meccanismo che permette di collegare e scollegare il motore dalla trasmissione, consentendo il cambio marcia e l'arresto del veicolo.",
+                image: 'https://i.postimg.cc/SskKxh66/Chat-GPT-Image-16-apr-2025-11-52-12.png'
+            },
+            {
+                name: "Valvola",
+                description: "Componente che regola l'ingresso della miscela aria-carburante e l'uscita dei gas combusti nelle camere di combustione.",
+                image: 'https://i.postimg.cc/LXFFHQMj/valvola.png'
+            },
+            {
+                name: "Turbina",
+                description: "Aumenta la potenza del motore utilizzando l'energia dei gas di scarico per comprimere l'aria in ingresso al motore.",
+                image: 'https://i.postimg.cc/LsTpvZPP/Chat-GPT-Image-16-apr-2025-11-55-51.png'
+            },
+            {
+                name: "Radiatore",
+                description: "Raffredda il motore dissipando il calore del liquido di raffreddamento attraverso una serie di canali e alette.",
+                image: 'https://i.postimg.cc/43cNX3j2/Chat-GPT-Image-16-apr-2025-10-53-53.png'
+            }
+        ];
+
+        // Variabili di gioco
+        let gameGrid = document.getElementById('game-grid');
+        let timer = document.getElementById('timer');
+        let movesDisplay = document.getElementById('moves');
+        let difficultySelect = document.getElementById('difficulty');
+        let restartButton = document.getElementById('restart');
+        let playAgainButton = document.getElementById('play-again');
+        let victoryModal = document.getElementById('victory-modal');
+        let victoryMessage = document.getElementById('victory-message');
+        let componentInfo = document.getElementById('component-info');
+        let componentName = document.getElementById('component-name');
+        let componentDesc = document.getElementById('component-desc');
+        let welcomeScreen = document.getElementById('welcome-screen');
+        let startButton = document.getElementById('start-game');
+
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let moves = 0;
+        let gameActive = false;
+        let timerInterval;
+        let seconds = 0;
+        let gameSize = { rows: 2, cols: 4, pairs: 4 }; // Default (Easy) 4x2
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Non inizializzare il gioco automaticamente, mostra la schermata di benvenuto
+            welcomeScreen.style.display = 'flex';
+        });
+        
+        startButton.addEventListener('click', function() {
+            welcomeScreen.style.display = 'none';
+            setupGame();
+        });
+        
+        restartButton.addEventListener('click', setupGame);
+        playAgainButton.addEventListener('click', () => {
+            victoryModal.style.display = 'none';
+            setupGame();
+        });
+        difficultySelect.addEventListener('change', setupGame);
+
+        // Funzioni di gioco
+        function setupGame() {
+            // Reset delle variabili di gioco
+            clearInterval(timerInterval);
+            flippedCards = [];
+            matchedPairs = 0;
+            moves = 0;
+            seconds = 0;
+            gameActive = true;
+            
+            // Aggiorna display
+            timer.textContent = '00:00';
+            movesDisplay.textContent = '0';
+            componentInfo.style.display = 'none';
+            
+            // Nascondi la modale di vittoria se visibile
+            victoryModal.style.display = 'none';
+            
+            // Imposta dimensioni in base alla difficoltà
+            let difficulty = difficultySelect.value;
+            if (difficulty === 'easy') {
+                gameSize = { rows: 2, cols: 4, pairs: 4 }; // 4x2
+                gameGrid.style.gridTemplateColumns = 'repeat(4, 1fr)';
+                gameGrid.classList.remove('medium', 'difficult');
+            } else if (difficulty === 'medium') {
+                gameSize = { rows: 3, cols: 4, pairs: 6 }; // 4x3
+                gameGrid.style.gridTemplateColumns = 'repeat(4, 1fr)';
+                gameGrid.classList.add('medium');
+                gameGrid.classList.remove('difficult');
+            } else if (difficulty === 'hard') {
+                gameSize = { rows: 4, cols: 4, pairs: 8 }; // 4x4
+                gameGrid.style.gridTemplateColumns = 'repeat(4, 1fr)';
+                gameGrid.classList.add('difficult');
+                gameGrid.classList.remove('medium');
+            }
+            
+            // Crea e distribuisci le carte
+            createCards();
+            
+            // Avvia il timer
+            startTimer();
+        }
+
+        function createCards() {
+            // Svuota la griglia
+            gameGrid.innerHTML = '';
+            cards = [];
+            
+            // Crea le coppie di carte
+            let totalPairs = gameSize.pairs;
+            let cardPairs = [];
+            
+            // Assicurati di non superare il numero di componenti disponibili
+            let availableComponents = [...components];
+            
+            // Se abbiamo bisogno di più coppie rispetto ai componenti disponibili, duplica alcuni componenti
+            while (cardPairs.length < totalPairs * 2) {
+                if (availableComponents.length === 0) {
+                    availableComponents = [...components]; // Ripristina l'array se necessario
+                }
+                
+                // Prendi un componente casuale
+                let randomIndex = Math.floor(Math.random() * availableComponents.length);
+                let component = availableComponents.splice(randomIndex, 1)[0];
+                
+                // Aggiungi la coppia
+                cardPairs.push(component, component);
+                
+                // Verifica se abbiamo raggiunto il numero desiderato di coppie
+                if (cardPairs.length >= totalPairs * 2) break;
+            }
+            
+            // Mescola le carte
+            shuffleArray(cardPairs);
+            
+            // Crea gli elementi delle carte
+            cardPairs.forEach((component, index) => {
+                // Crea l'elemento carta
+                let card = document.createElement('div');
+                card.className = 'card';
+                card.dataset.index = index;
+                card.dataset.component = component.name;
+                
+                // Struttura interna della carta
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-face card-front"></div>
+                        <div class="card-face card-back">
+                            <img src="${component.image}" class="card-img" alt="${component.name}">
+                            <div class="card-title">${component.name}</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Aggiungi l'event listener per il click
+                card.addEventListener('click', () => flipCard(card));
+                
+                // Aggiungi alla griglia e all'array
+                gameGrid.appendChild(card);
+                cards.push(card);
+            });
+        }
+
+        function flipCard(card) {
+            // Non fare nulla se la carta è già girata o la partita è finita
+            if (!gameActive || flippedCards.length >= 2 || card.classList.contains('flipped') || card.classList.contains('matched')) {
+                return;
+            }
+            
+            // Gira la carta
+            card.classList.add('flipped');
+            flippedCards.push(card);
+            
+            // Se abbiamo girato due carte, controlla se corrispondono
+            if (flippedCards.length === 2) {
+                moves++;
+                movesDisplay.textContent = moves;
+                
+                setTimeout(checkMatch, 500);
+            }
+        }
+
+        function checkMatch() {
+            let [card1, card2] = flippedCards;
+            
+            // Verifica se le carte corrispondono
+            if (card1.dataset.component === card2.dataset.component) {
+                // Le carte corrispondono
+                card1.classList.add('matched');
+                card2.classList.add('matched');
+                
+                // Incrementa il contatore delle coppie trovate
+                matchedPairs++;
+                
+                // Mostra le informazioni sul componente
+                showComponentInfo(card1.dataset.component);
+                
+                // Controlla se il gioco è finito
+                if (matchedPairs >= gameSize.pairs) {
+                    endGame();
+                }
+            } else {
+                // Le carte non corrispondono, rigira le carte
+                setTimeout(() => {
+                    card1.classList
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                }, 500);
+            }
+            
+            // Resetta l'array delle carte girate
+            flippedCards = [];
+        }
+
+        function showComponentInfo(componentName) {
+    // Trova il componente corrispondente
+    let component = components.find(c => c.name === componentName);
+    
+    if (component) {
+        // Crea un overlay per mostrare le informazioni
+        let overlay = document.createElement('div');
+        overlay.className = 'component-overlay';
+        
+        overlay.innerHTML = `
+            <div class="component-modal">
+                <div class="component-image">
+                    <img src="${component.image}" alt="${component.name}">
+                </div>
+                <div class="component-text">
+                    <h3>${component.name}</h3>
+                    <p>${component.description}</p>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+      
+
+  
+        // Timer per chiudere automaticamente dopo 8 secondi
+        const autoCloseTimer = setTimeout(() => {
+            if (document.body.contains(overlay)) { // Verifica se l'overlay esiste ancora
+                document.body.removeChild(overlay);
+            }
+        }, 8000);
+
+        // Chiudi l'overlay al click (su qualsiasi parte)
+        overlay.addEventListener('click', () => {
+            clearTimeout(autoCloseTimer); // Annulla il timer se l'utente chiude manualmente
+            document.body.removeChild(overlay);
+        });
+    }
+}
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            seconds = 0;
+            timer.textContent = '00:00';
+            
+            timerInterval = setInterval(() => {
+                seconds++;
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                timer.textContent = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function endGame() {
+            // Ferma il timer
+            clearInterval(timerInterval);
+            gameActive = false;
+            
+            // Calcola il punteggio (semplice formula basata su tempo e mosse)
+            let timeBonus = Math.max(0, 300 - seconds); // Bonus tempo (max 300 punti)
+            let movesPenalty = moves * 5; // Penalità per mosse (5 punti per mossa)
+            let score = (gameSize.pairs * 100) + timeBonus - movesPenalty;
+            score = Math.max(0, score); // Assicura che il punteggio non sia negativo
+            
+            // Mostra il messaggio di vittoria
+            let minutes = Math.floor(seconds / 60);
+            let remainingSeconds = seconds % 60;
+            let timeString = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+            
+            victoryMessage.textContent = `Hai completato il gioco in ${timeString} con ${moves} mosse! Punteggio: ${score} punti.`;
+            
+            // Mostra la modale di vittoria
+            victoryModal.style.display = 'flex';
+        }
+
+        // Utility per mischiare un array (algoritmo di Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+
+    </script>
+</body>
+</html>
